@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  mysql-db:
+    image: mysql:8.0
+    platform: linux/amd64
+    container_name: match_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database:/docker-entrypoint-initdb.d
+    networks:
+      - match_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 10
+      interval: 5s
+      start_period: 30s
+
+  match-api:
+    build: .
+    container_name: match_api
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    ports:
+      - "${API_PORT}:8080"
+    environment:
+      DB_HOST: mysql-db
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      GIN_MODE: ${GIN_MODE}
+    networks:
+      - match_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      timeout: 10s
+      retries: 5
+      interval: 5s
+      start_period: 30s
+    restart: unless-stopped
+
+  adminer:
+    image: adminer:4.8.1
+    container_name: match_adminer
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql-db
+      ADMINER_DESIGN: pepa-linha
+    ports:
+      - "${PHPMYADMIN_PORT}:8080"
+    networks:
+      - match_network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+
+networks:
+  match_network:
+    driver: bridge 

@@ -1,0 +1,9 @@
+INSERT INTO MatchLogs (WID, WD_ID, State, LogData, AddDateTime) VALUES
+(1, 1001, 'Order', '{"action":"create_order","to_state":"Order","timestamp":"2024-01-01T10:00:00Z","details":{"wd_amount":5000,"wd_account":"ACC001"}}', '2024-01-01 10:00:00'),
+(1, 1001, 'Matching', '{"action":"state_change","from_state":"Order","to_state":"Matching","timestamp":"2024-01-01T10:05:00Z","details":{"reserve_user_id":2001,"reserve_amount":5000}}', '2024-01-01 10:05:00'),
+(1, 1001, 'Success', '{"action":"state_change","from_state":"Matching","to_state":"Success","timestamp":"2024-01-01T10:10:00Z","details":{"dep_id":3001,"dep_amount":5000,"reserve_user_id":2001}}', '2024-01-01 10:10:00'),
+(2, 1002, 'Order', '{"action":"create_order","to_state":"Order","timestamp":"2024-01-01T11:00:00Z","details":{"wd_amount":3000,"wd_account":"ACC002"}}', '2024-01-01 11:00:00'),
+(2, 1002, 'Matching', '{"action":"state_change","from_state":"Order","to_state":"Matching","timestamp":"2024-01-01T11:05:00Z","details":{"reserve_user_id":2002,"reserve_amount":3000}}', '2024-01-01 11:05:00'),
+(2, 1002, 'Cancel', '{"action":"state_change","from_state":"Matching","to_state":"Cancel","timestamp":"2024-01-01T11:15:00Z","details":{"reserve_user_id":2002,"cancel_reason":"user_requested"}}', '2024-01-01 11:15:00'),
+(3, 1003, 'Order', '{"action":"create_order","to_state":"Order","timestamp":"2024-01-01T12:00:00Z","details":{"wd_amount":8000,"wd_account":"ACC003"}}', '2024-01-01 12:00:00'),
+(3, 1003, 'Rejected', '{"action":"state_change","from_state":"Order","to_state":"Rejected","timestamp":"2024-01-01T12:30:00Z","details":{"reject_reason":"manual_rejection"}}', '2024-01-01 12:30:00'); 
