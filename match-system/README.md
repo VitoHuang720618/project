@@ -93,10 +93,10 @@ curl http://localhost:8080/api/health
 time curl -s http://localhost:8080/api/health
 
 # 撮合中清單
-curl http://localhost:8080/api/getmatchinglist
+curl -X POST -H "Content-Type: application/json" -d '{}' http://localhost:8080/api/getmatchinglist
 
 # 失效單清單
-curl http://localhost:8080/api/getrejectedlist
+curl -X POST -H "Content-Type: application/json" -d '{}' http://localhost:8080/api/getrejectedlist
 ```
 
 ### 網路和連接埠檢查
