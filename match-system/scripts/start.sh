@@ -43,20 +43,20 @@ cleanup_old_containers() {
 start_mysql() {
     echo "🗄️  啟動 MySQL 服務..."
     
-    docker-compose up -d mysql-db
+    docker-compose --env-file docker.env up -d mysql-db
     
     echo "⏳ 等待 MySQL 啟動..."
     
     # 等待 MySQL 健康檢查通過
     for i in {1..60}; do
-        if docker-compose exec -T mysql-db mysqladmin ping -h localhost -u root -proot1234 > /dev/null 2>&1; then
+        if docker-compose --env-file docker.env exec -T mysql-db mysqladmin ping -h localhost -u root -proot1234 > /dev/null 2>&1; then
             echo "✅ MySQL 服務啟動成功"
             break
         fi
         
         if [ $i -eq 60 ]; then
             echo "❌ MySQL 啟動超時，請檢查日誌"
-            docker-compose logs mysql-db
+            docker-compose --env-file docker.env logs mysql-db
             exit 1
         fi
         
@@ -70,23 +70,23 @@ start_api() {
     echo "🌐 啟動 API 服務..."
     
     # 建置 API 映像
-    docker-compose build match-api
+    docker-compose --env-file docker.env build match-api
     
     # 啟動 API 容器
-    docker-compose up -d match-api
+    docker-compose --env-file docker.env up -d match-api
     
     echo "⏳ 等待 API 服務啟動..."
     
     # 等待 API 健康檢查通過
     for i in {1..30}; do
-        if docker-compose ps match-api | grep -q "Up"; then
+        if docker-compose --env-file docker.env ps match-api | grep -q "Up"; then
             echo "✅ API 服務啟動成功"
             break
         fi
         
         if [ $i -eq 30 ]; then
             echo "❌ API 啟動超時，請檢查日誌"
-            docker-compose logs match-api
+            docker-compose --env-file docker.env logs match-api
             exit 1
         fi
         
@@ -99,19 +99,19 @@ start_api() {
 start_adminer() {
     echo "🌐 啟動 Adminer 服務..."
     
-    docker-compose up -d adminer
+    docker-compose --env-file docker.env up -d adminer
     
     echo "⏳ 等待 Adminer 啟動..."
     
     for i in {1..20}; do
-        if docker-compose ps adminer | grep -q "Up"; then
+        if docker-compose --env-file docker.env ps adminer | grep -q "Up"; then
             echo "✅ Adminer 服務啟動成功"
             break
         fi
         
         if [ $i -eq 20 ]; then
             echo "❌ Adminer 啟動超時，請檢查日誌"
-            docker-compose logs adminer
+            docker-compose --env-file docker.env logs adminer
             exit 1
         fi
         
@@ -126,7 +126,7 @@ run_health_check() {
     
     # 檢查 MySQL 服務
     echo "🗄️  檢查 MySQL 服務..."
-    if docker-compose exec -T mysql-db mysqladmin ping -h localhost -u root -proot1234 > /dev/null 2>&1; then
+    if docker-compose --env-file docker.env exec -T mysql-db mysqladmin ping -h localhost -u root -proot1234 > /dev/null 2>&1; then
         echo "✅ MySQL 服務健康檢查通過"
     else
         echo "❌ MySQL 服務健康檢查失敗"
@@ -135,7 +135,7 @@ run_health_check() {
     
     # 檢查 API 服務
     echo "📡 檢查 API 服務..."
-    if docker-compose ps match-api | grep -q "Up"; then
+    if docker-compose --env-file docker.env ps match-api | grep -q "Up"; then
         echo "✅ API 服務運行中"
     else
         echo "❌ API 服務未運行"
@@ -144,7 +144,7 @@ run_health_check() {
     
     # 檢查 Adminer 服務
     echo "🌐 檢查 Adminer 服務..."
-    if docker-compose ps adminer | grep -q "Up"; then
+    if docker-compose --env-file docker.env ps adminer | grep -q "Up"; then
         echo "✅ Adminer 服務運行中"
     else
         echo "❌ Adminer 服務未運行"

@@ -54,11 +54,11 @@ case "${1:-help}" in
         ;;
     "stop")
         echo "${BLUE}🛑 停止所有服務...${NC}"
-        docker-compose down
+        docker-compose --env-file docker.env down
         ;;
     "restart")
         echo "${BLUE}🔄 重啟撮合系統...${NC}"
-        docker-compose down
+        docker-compose --env-file docker.env down
         ./scripts/start.sh
         ;;
     "test")
@@ -71,11 +71,11 @@ case "${1:-help}" in
         ;;
     "status")
         echo "${BLUE}📊 服務狀態:${NC}"
-        docker-compose ps
+        docker-compose --env-file docker.env ps
         ;;
     "logs")
         echo "${BLUE}📄 查看服務日誌...${NC}"
-        docker-compose logs -f
+        docker-compose --env-file docker.env logs -f
         ;;
     "clean")
         echo "${BLUE}🧹 清理環境...${NC}"
@@ -83,13 +83,13 @@ case "${1:-help}" in
         ;;
     "build")
         echo "${BLUE}🔨 重新建置服務...${NC}"
-        docker-compose build --no-cache
+        docker-compose --env-file docker.env build --no-cache
         ;;
     "migrate")
         echo "${BLUE}📊 執行資料庫遷移...${NC}"
         
         # 檢查 MySQL 是否運行
-        if ! docker-compose ps mysql-db | grep -q "Up"; then
+        if ! docker-compose --env-file docker.env ps mysql-db | grep -q "Up"; then
             echo "${RED}❌ MySQL 服務未運行，請先執行 ./run.sh start${NC}"
             exit 1
         fi
@@ -97,7 +97,7 @@ case "${1:-help}" in
         # 等待 MySQL 就緒
         echo "${YELLOW}⏳ 等待 MySQL 服務就緒...${NC}"
         for i in {1..30}; do
-            if docker-compose exec -T mysql-db mysqladmin ping -h localhost -u root -proot1234 > /dev/null 2>&1; then
+            if docker-compose --env-file docker.env exec -T mysql-db mysqladmin ping -h localhost -u root -proot1234 > /dev/null 2>&1; then
                 echo "${GREEN}✅ MySQL 服務就緒${NC}"
                 break
             fi
@@ -124,7 +124,7 @@ case "${1:-help}" in
         echo "${BLUE}🌱 載入測試資料...${NC}"
         
         # 檢查 MySQL 是否運行
-        if ! docker-compose ps mysql-db | grep -q "Up"; then
+        if ! docker-compose --env-file docker.env ps mysql-db | grep -q "Up"; then
             echo "${RED}❌ MySQL 服務未運行，請先執行 ./run.sh start${NC}"
             exit 1
         fi
@@ -132,7 +132,7 @@ case "${1:-help}" in
         # 等待 MySQL 就緒
         echo "${YELLOW}⏳ 等待 MySQL 服務就緒...${NC}"
         for i in {1..30}; do
-            if docker-compose exec -T mysql-db mysqladmin ping -h localhost -u root -proot1234 > /dev/null 2>&1; then
+            if docker-compose --env-file docker.env exec -T mysql-db mysqladmin ping -h localhost -u root -proot1234 > /dev/null 2>&1; then
                 echo "${GREEN}✅ MySQL 服務就緒${NC}"
                 break
             fi
@@ -150,14 +150,14 @@ case "${1:-help}" in
         echo "${BLUE}🔄 正在載入測試資料...${NC}"
         
         echo "📊 載入 MatchWagers 測試資料..."
-        if cat database/seeds/001_test_data.sql | docker-compose exec -T mysql-db mysql -u root -proot1234 match_system; then
+        if cat database/seeds/001_test_data.sql | docker-compose --env-file docker.env exec -T mysql-db mysql -u root -proot1234 match_system; then
             echo "${GREEN}✅ MatchWagers 測試資料載入完成${NC}"
         else
             echo "${YELLOW}⚠️  MatchWagers 測試資料可能已存在${NC}"
         fi
         
         echo "📊 載入 MatchLogs 測試資料..."
-        if cat database/seeds/002_logs_test_data.sql | docker-compose exec -T mysql-db mysql -u root -proot1234 match_system; then
+        if cat database/seeds/002_logs_test_data.sql | docker-compose --env-file docker.env exec -T mysql-db mysql -u root -proot1234 match_system; then
             echo "${GREEN}✅ MatchLogs 測試資料載入完成${NC}"
         else
             echo "${YELLOW}⚠️  MatchLogs 測試資料可能已存在${NC}"
@@ -198,7 +198,7 @@ case "${1:-help}" in
         echo "${GREEN}🎉 一鍵部署完成！${NC}"
         echo ""
         echo "${BLUE}📊 系統狀態:${NC}"
-        docker-compose ps
+        docker-compose --env-file docker.env ps
         echo ""
         echo "${BLUE}🔗 服務地址:${NC}"
         echo "  API:      http://localhost:8080"
@@ -211,7 +211,7 @@ case "${1:-help}" in
         ;;
     "dev")
         echo "${BLUE}🔥 啟動開發模式...${NC}"
-        docker-compose -f docker-compose.yml up
+        docker-compose --env-file docker.env -f docker-compose.yml up
         ;;
     "db")
         echo "${BLUE}💾 開啟 Adminer 資料庫管理介面...${NC}"
