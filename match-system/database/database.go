@@ -11,7 +11,7 @@ import (
 var DB *sql.DB
 
 func InitDB(cfg *config.DatabaseConfig) (*sql.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&collation=utf8mb4_unicode_ci&parseTime=True&loc=Local",
 		cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.Database)
 	
 	db, err := sql.Open("mysql", dsn)
@@ -34,6 +34,21 @@ func InitDB(cfg *config.DatabaseConfig) (*sql.DB, error) {
 
 // EnsureTablesExist 確保所需的表結構存在
 func EnsureTablesExist() error {
+	// 設定正確的字符集
+	queries := []string{
+		"SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci",
+		"SET CHARACTER SET utf8mb4",
+		"SET character_set_connection = utf8mb4",
+		"SET character_set_results = utf8mb4",
+		"SET character_set_client = utf8mb4",
+	}
+	
+	for _, query := range queries {
+		if _, err := DB.Exec(query); err != nil {
+			return fmt.Errorf("failed to set character set with query '%s': %v", query, err)
+		}
+	}
+	
 	// 檢查MatchWagers表是否存在，如果不存在則創建
 	matchWagersSQL := `
 	CREATE TABLE IF NOT EXISTS MatchWagers (

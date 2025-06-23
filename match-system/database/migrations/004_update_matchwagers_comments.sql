@@ -1,4 +1,10 @@
 -- 更新 MatchWagers 表的欄位備註
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+SET CHARACTER SET utf8mb4;
+SET character_set_connection = utf8mb4;
+SET character_set_results = utf8mb4;
+SET character_set_client = utf8mb4;
+
 ALTER TABLE MatchWagers 
 MODIFY COLUMN WID INT AUTO_INCREMENT COMMENT '委託單ID',
 MODIFY COLUMN WD_ID INT NOT NULL COMMENT '出款單號',

@@ -2,6 +2,12 @@
 -- 版本: 1.0
 -- 建立日期: 2024-01-01
 
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+SET CHARACTER SET utf8mb4;
+SET character_set_connection = utf8mb4;
+SET character_set_results = utf8mb4;
+SET character_set_client = utf8mb4;
+
 -- 建立撮合委託單表
 CREATE TABLE IF NOT EXISTS MatchWagers (
     WID INT AUTO_INCREMENT PRIMARY KEY COMMENT '委託單 ID',

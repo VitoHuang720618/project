@@ -1,4 +1,11 @@
 -- 建立 MatchWagers 撮合系統委託單表
+
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+SET CHARACTER SET utf8mb4;
+SET character_set_connection = utf8mb4;
+SET character_set_results = utf8mb4;
+SET character_set_client = utf8mb4;
+
 CREATE TABLE IF NOT EXISTS MatchWagers (
     WID INT AUTO_INCREMENT PRIMARY KEY COMMENT '委託單 ID',
     WD_ID INT NOT NULL COMMENT '出款單號',
