@@ -79,6 +79,47 @@ api_test() {
     fi
 }
 
+# API 錯誤測試函數 (檢查Success欄位)
+api_error_test() {
+    local test_name="$1"
+    local method="$2"
+    local endpoint="$3"
+    local data="$4"
+    
+    total_tests=$((total_tests + 1))
+    
+    echo -n "📡 API 測試 $test_name..."
+    
+    if [ -n "$data" ]; then
+        response=$(curl -s -X "$method" -H "Content-Type: application/json" -d "$data" "$BASE_URL$endpoint")
+    else
+        response=$(curl -s -X "$method" "$BASE_URL$endpoint")
+    fi
+    
+    if command -v jq >/dev/null 2>&1; then
+        success=$(echo "$response" | jq -r '.Success' 2>/dev/null)
+        if [ "$success" = "0" ]; then
+            echo -e " ${GREEN}✅ 通過${NC} (錯誤正確處理)"
+            passed_tests=$((passed_tests + 1))
+            return 0
+        else
+            echo -e " ${RED}❌ 失敗${NC} (Success: $success, 應為0)"
+            failed_tests=$((failed_tests + 1))
+            return 1
+        fi
+    else
+        if echo "$response" | grep -q '"Success":0'; then
+            echo -e " ${GREEN}✅ 通過${NC} (錯誤正確處理)"
+            passed_tests=$((passed_tests + 1))
+            return 0
+        else
+            echo -e " ${RED}❌ 失敗${NC} (未正確處理錯誤)"
+            failed_tests=$((failed_tests + 1))
+            return 1
+        fi
+    fi
+}
+
 # 基礎服務健康檢查
 basic_health_check() {
     echo -e "${BLUE}🔍 基礎服務健康檢查${NC}"
@@ -125,7 +166,7 @@ business_workflow_tests() {
     api_test "預約入款" "POST" "/api/reserve" "$reserve_data" "200"
     
     # 3. 撮合成功 (動態獲取 Matching 狀態的委託單)
-    matching_wid=$(docker-compose exec -T mysql-master mysql -u root -proot1234 -e "USE match_system; SELECT WID FROM MatchWagers WHERE State='Matching' AND Reserve_UserID=9999 ORDER BY WID DESC LIMIT 1;" | tail -n +2 | head -n 1)
+    matching_wid=$(docker-compose exec -T mysql-master mysql -u root -proot1234 -e "USE match_system; SELECT WID FROM MatchWagers WHERE State='Matching' AND Reserve_UserID=9999 ORDER BY WID DESC LIMIT 1;" 2>/dev/null | tail -n +2 | head -n 1)
     success_data="{\"WagerID\":$matching_wid,\"Reserve_UserID\":9999,\"DEP_ID\":9999,\"DEP_Amount\":1000}"
     api_test "撮合成功" "POST" "/api/success" "$success_data" "200"
     
@@ -138,7 +179,7 @@ business_workflow_tests() {
     api_test "預約第二個委託單" "POST" "/api/reserve" "$reserve_data2" "200"
     
     # 6. 測試取消功能 (使用剛預約的委託單)
-    cancel_wid=$(docker-compose exec -T mysql-master mysql -u root -proot1234 -e "USE match_system; SELECT WID FROM MatchWagers WHERE State='Matching' AND Reserve_UserID=8888 ORDER BY WID DESC LIMIT 1;" | tail -n +2 | head -n 1)
+    cancel_wid=$(docker-compose exec -T mysql-master mysql -u root -proot1234 -e "USE match_system; SELECT WID FROM MatchWagers WHERE State='Matching' AND Reserve_UserID=8888 ORDER BY WID DESC LIMIT 1;" 2>/dev/null | tail -n +2 | head -n 1)
     cancel_data="{\"WagerID\":$cancel_wid,\"Reserve_UserID\":8888}"
     api_test "取消撮合" "POST" "/api/cancel" "$cancel_data" "200"
     
@@ -147,7 +188,7 @@ business_workflow_tests() {
     api_test "新增第三個委託單" "POST" "/api/order" "$order_data3" "200"
     
     # 8. 測試轉失效功能 (使用新的Order狀態委託單)
-    reject_wid=$(docker-compose exec -T mysql-master mysql -u root -proot1234 -e "USE match_system; SELECT WID FROM MatchWagers WHERE State='Order' AND WD_ID=9997 ORDER BY WID DESC LIMIT 1;" | tail -n +2 | head -n 1)
+    reject_wid=$(docker-compose exec -T mysql-master mysql -u root -proot1234 -e "USE match_system; SELECT WID FROM MatchWagers WHERE State='Order' AND WD_ID=9997 ORDER BY WID DESC LIMIT 1;" 2>/dev/null | tail -n +2 | head -n 1)
     rejected_data="{\"WagerID\":$reject_wid,\"Reserve_UserID\":1}"
     api_test "轉失效單" "POST" "/api/rejected" "$rejected_data" "200"
     
@@ -194,7 +235,7 @@ performance_tests() {
     # 資料庫查詢效能
     echo -n "🔬 測試 資料庫查詢效能..."
     query_start=$(date +%s.%N)
-    docker-compose exec -T mysql-master mysql -u root -proot1234 -e "USE match_system; SELECT COUNT(*) FROM MatchWagers WHERE State = 'Order';" > /dev/null 2>&1
+    docker-compose exec -T mysql-master mysql -u root -proot1234 -e "USE match_system; SELECT COUNT(*) FROM MatchWagers WHERE State = 'Order';" 2>/dev/null > /dev/null
     query_end=$(date +%s.%N)
     query_time=$(echo "$query_end - $query_start" | bc)
     
@@ -216,13 +257,13 @@ error_handling_tests() {
     
     # 測試無效資料
     invalid_data='{"invalid":"data"}'
-    api_test "無效資料處理" "POST" "/api/order" "$invalid_data" "400"
+    api_error_test "無效資料處理" "POST" "/api/order" "$invalid_data"
     
     # 測試不存在的端點
     api_test "404 錯誤處理" "GET" "/api/nonexistent" "" "404"
     
     # 測試無效的 JSON
-    api_test "無效 JSON 處理" "POST" "/api/order" "invalid json" "400"
+    api_error_test "無效 JSON 處理" "POST" "/api/order" "invalid json"
     
     echo ""
 }

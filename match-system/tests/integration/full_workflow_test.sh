@@ -52,6 +52,35 @@ test_api() {
     fi
 }
 
+# 錯誤測試函數 (檢查Success欄位)
+test_error_api() {
+    local test_name="$1"
+    local method="$2"
+    local endpoint="$3"
+    local data="$4"
+    
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+    
+    echo -n "📡 測試 $test_name..."
+    
+    if [ -n "$data" ]; then
+        response=$(curl -s -X "$method" -H "Content-Type: application/json" -d "$data" "$BASE_URL$endpoint")
+    else
+        response=$(curl -s -X "$method" "$BASE_URL$endpoint")
+    fi
+    
+    if echo "$response" | grep -q '"Success":0'; then
+        echo -e " ${GREEN}✅ 通過${NC} (錯誤正確處理)"
+        PASSED_TESTS=$((PASSED_TESTS + 1))
+        return 0
+    else
+        echo -e " ${RED}❌ 失敗${NC} (未正確處理錯誤)"
+        echo "回應內容: $response"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+        return 1
+    fi
+}
+
 # 情境1: 完整撮合流程
 scenario_complete_matching() {
     echo -e "${BLUE}📋 情境1: 完整撮合流程${NC}"
@@ -136,14 +165,14 @@ scenario_error_handling() {
     
     # 測試無效資料
     invalid_order="{\"invalid\":\"data\"}"
-    test_api "無效訂單資料" "POST" "/api/order" "$invalid_order" "400"
+    test_error_api "無效訂單資料" "POST" "/api/order" "$invalid_order"
     
     # 測試不存在的委託單操作
-    nonexistent_wid="{\"wid\":99999}"
-    test_api "操作不存在的委託單" "POST" "/api/cancel" "$nonexistent_wid" "404"
+    nonexistent_wid="{\"WagerID\":99999,\"Reserve_UserID\":99999}"
+    test_error_api "操作不存在的委託單" "POST" "/api/cancel" "$nonexistent_wid"
     
     # 測試無效 JSON
-    test_api "無效 JSON" "POST" "/api/order" "invalid json" "400"
+    test_error_api "無效 JSON" "POST" "/api/order" "invalid json"
     
     echo ""
 }
