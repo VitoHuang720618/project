@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"time"
 	"github.com/gin-gonic/gin"
+	"match-system/database"
 	"match-system/models"
 	"match-system/utils"
 )
@@ -59,4 +60,64 @@ func GetLogsByState(c *gin.Context) {
 	
 	result := utils.CreatePaginationResult(logs, int64(total), pagination)
 	utils.SuccessResponse(c, result, startTime)
+}
+
+// DatabaseStatus 檢查 Master 和 Slave 資料庫狀態
+func DatabaseStatus(c *gin.Context) {
+	startTime := time.Now()
+	
+	status := gin.H{
+		"master": gin.H{},
+		"slave":  gin.H{},
+	}
+	
+	// 檢查 Master 資料庫
+	if err := database.GetWriteDB().Ping(); err != nil {
+		status["master"] = gin.H{
+			"status": "error",
+			"error":  err.Error(),
+		}
+	} else {
+		// 測試寫入操作
+		var count int
+		err := database.GetWriteDB().QueryRow("SELECT COUNT(*) FROM MatchWagers").Scan(&count)
+		if err != nil {
+			status["master"] = gin.H{
+				"status": "error",
+				"error":  err.Error(),
+			}
+		} else {
+			status["master"] = gin.H{
+				"status": "ok",
+				"count":  count,
+				"role":   "write",
+			}
+		}
+	}
+	
+	// 檢查 Slave 資料庫
+	if err := database.GetReadDB().Ping(); err != nil {
+		status["slave"] = gin.H{
+			"status": "error",
+			"error":  err.Error(),
+		}
+	} else {
+		// 測試讀取操作
+		var count int
+		err := database.GetReadDB().QueryRow("SELECT COUNT(*) FROM MatchWagers").Scan(&count)
+		if err != nil {
+			status["slave"] = gin.H{
+				"status": "error",
+				"error":  err.Error(),
+			}
+		} else {
+			status["slave"] = gin.H{
+				"status": "ok",
+				"count":  count,
+				"role":   "read",
+			}
+		}
+	}
+	
+	utils.SuccessResponse(c, status, startTime)
 } 

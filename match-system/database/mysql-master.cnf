@@ -1,0 +1,33 @@
+[mysqld]
+# 基本編碼設定
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+default-authentication-plugin = mysql_native_password
+init-connect = 'SET NAMES utf8mb4'
+
+# Master 複製設定
+server-id = 1
+log-bin = mysql-bin
+binlog-format = ROW
+gtid-mode = ON
+enforce-gtid-consistency = ON
+
+# 複製過濾設定
+binlog-do-db = match_system
+
+# 效能優化
+innodb_buffer_pool_size = 256M
+innodb_log_file_size = 64M
+innodb_flush_log_at_trx_commit = 1
+sync_binlog = 1
+
+# 連線設定
+max_connections = 200
+wait_timeout = 28800
+interactive_timeout = 28800
+
+[mysql]
+default-character-set = utf8mb4
+
+[client]
+default-character-set = utf8mb4 

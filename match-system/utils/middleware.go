@@ -27,9 +27,14 @@ func PerformanceMonitor() gin.HandlerFunc {
 
 func DatabaseConnectionMonitor() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if database.DB != nil {
-			if err := database.DB.Ping(); err != nil {
-				log.Printf("❌ 資料庫連接失敗: %v", err)
+		if database.MasterDB != nil && database.SlaveDB != nil {
+			masterErr := database.MasterDB.Ping()
+			slaveErr := database.SlaveDB.Ping()
+			if masterErr != nil {
+				log.Printf("❌ Master 資料庫連接失敗: %v", masterErr)
+			}
+			if slaveErr != nil {
+				log.Printf("❌ Slave 資料庫連接失敗: %v", slaveErr)
 			}
 		}
 		

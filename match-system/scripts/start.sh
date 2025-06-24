@@ -43,24 +43,43 @@ cleanup_old_containers() {
 start_mysql() {
     echo "🗄️  啟動 MySQL 服務..."
     
-    docker-compose --env-file docker.env up -d mysql-db
+    docker-compose --env-file docker.env up -d mysql-master mysql-slave
     
-    echo "⏳ 等待 MySQL 啟動..."
+    echo "⏳ 等待 MySQL Master 啟動..."
     
-    # 等待 MySQL 健康檢查通過
+    # 等待 MySQL Master 健康檢查通過
     for i in {1..60}; do
-        if docker-compose --env-file docker.env exec -T mysql-db mysqladmin ping -h localhost -u root -proot1234 > /dev/null 2>&1; then
-            echo "✅ MySQL 服務啟動成功"
+        if docker-compose --env-file docker.env exec -T mysql-master mysqladmin ping -h localhost -u root -proot1234 > /dev/null 2>&1; then
+            echo "✅ MySQL Master 服務啟動成功"
             break
         fi
         
         if [ $i -eq 60 ]; then
-            echo "❌ MySQL 啟動超時，請檢查日誌"
-            docker-compose --env-file docker.env logs mysql-db
+            echo "❌ MySQL Master 啟動超時，請檢查日誌"
+            docker-compose --env-file docker.env logs mysql-master
             exit 1
         fi
         
-        echo "⏳ 等待 MySQL 啟動... ($i/60)"
+        echo "⏳ 等待 MySQL Master 啟動... ($i/60)"
+        sleep 2
+    done
+    
+    echo "⏳ 等待 MySQL Slave 啟動..."
+    
+    # 等待 MySQL Slave 健康檢查通過
+    for i in {1..60}; do
+        if docker-compose --env-file docker.env exec -T mysql-slave mysqladmin ping -h localhost -u root -proot1234 > /dev/null 2>&1; then
+            echo "✅ MySQL Slave 服務啟動成功"
+            break
+        fi
+        
+        if [ $i -eq 60 ]; then
+            echo "❌ MySQL Slave 啟動超時，請檢查日誌"
+            docker-compose --env-file docker.env logs mysql-slave
+            exit 1
+        fi
+        
+        echo "⏳ 等待 MySQL Slave 啟動... ($i/60)"
         sleep 2
     done
 }
@@ -124,12 +143,21 @@ start_adminer() {
 run_health_check() {
     echo "🔍 執行健康檢查..."
     
-    # 檢查 MySQL 服務
-    echo "🗄️  檢查 MySQL 服務..."
-    if docker-compose --env-file docker.env exec -T mysql-db mysqladmin ping -h localhost -u root -proot1234 > /dev/null 2>&1; then
-        echo "✅ MySQL 服務健康檢查通過"
+    # 檢查 MySQL Master 服務
+    echo "🗄️  檢查 MySQL Master 服務..."
+    if docker-compose --env-file docker.env exec -T mysql-master mysqladmin ping -h localhost -u root -proot1234 > /dev/null 2>&1; then
+        echo "✅ MySQL Master 服務健康檢查通過"
     else
-        echo "❌ MySQL 服務健康檢查失敗"
+        echo "❌ MySQL Master 服務健康檢查失敗"
+        exit 1
+    fi
+    
+    # 檢查 MySQL Slave 服務
+    echo "🗄️  檢查 MySQL Slave 服務..."
+    if docker-compose --env-file docker.env exec -T mysql-slave mysqladmin ping -h localhost -u root -proot1234 > /dev/null 2>&1; then
+        echo "✅ MySQL Slave 服務健康檢查通過"
+    else
+        echo "❌ MySQL Slave 服務健康檢查失敗"
         exit 1
     fi
     
@@ -158,10 +186,11 @@ show_service_info() {
     echo "🎉 撮合系統啟動完成！"
     echo ""
     echo "📊 服務資訊:"
-    echo "  API 服務:      http://localhost:8080"
-    echo "  MySQL 服務:    localhost:3306"
-    echo "  Adminer:       http://localhost:8081"
-    echo "  資料庫名稱:    match_system"
+    echo "  API 服務:          http://localhost:8080"
+    echo "  MySQL Master:      localhost:3306"
+    echo "  MySQL Slave:       localhost:3307"
+    echo "  Adminer:           http://localhost:8081"
+    echo "  資料庫名稱:        match_system"
     echo ""
     echo "📝 下一步操作:"
     echo "  ./run.sh migrate  - 執行資料庫遷移"

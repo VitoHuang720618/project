@@ -1,18 +1,41 @@
 services:
-  mysql-db:
+  mysql-master:
     image: mysql:8.0
     platform: linux/amd64
-    container_name: match_mysql
+    container_name: match_mysql_master
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
     ports:
       - "${MYSQL_PORT}:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql_master_data:/var/lib/mysql
       - ./database:/docker-entrypoint-initdb.d
-      - ./database/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./database/mysql-master.cnf:/etc/mysql/conf.d/mysql.cnf
+    networks:
+      - match_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 10
+      interval: 5s
+      start_period: 30s
+
+  mysql-slave:
+    image: mysql:8.0
+    platform: linux/amd64
+    container_name: match_mysql_slave
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_slave_data:/var/lib/mysql
+      - ./database/mysql-slave.cnf:/etc/mysql/conf.d/mysql.cnf
+    depends_on:
+      mysql-master:
+        condition: service_healthy
     networks:
       - match_network
     healthcheck:
@@ -26,16 +49,18 @@ services:
     build: .
     container_name: match_api
     depends_on:
-      mysql-db:
+      mysql-master:
         condition: service_healthy
     ports:
       - "${API_PORT}:8080"
     environment:
-      DB_HOST: mysql-db
+      DB_HOST: mysql-master
       DB_PORT: 3306
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       DB_NAME: ${MYSQL_DATABASE}
+      DB_SLAVE_HOST: mysql-slave
+      DB_SLAVE_PORT: 3306
       GIN_MODE: ${GIN_MODE}
     networks:
       - match_network
@@ -51,19 +76,22 @@ services:
     image: adminer:4.8.1
     container_name: match_adminer
     depends_on:
-      mysql-db:
+      mysql-master:
+        condition: service_healthy
+      mysql-slave:
         condition: service_healthy
     environment:
-      ADMINER_DEFAULT_SERVER: mysql-db
+      ADMINER_DEFAULT_SERVER: mysql-master
       ADMINER_DESIGN: pepa-linha
     ports:
-      - "${PHPMYADMIN_PORT}:8080"
+      - "8081:8080"
     networks:
       - match_network
     restart: unless-stopped
 
 volumes:
-  mysql_data:
+  mysql_master_data:
+  mysql_slave_data:
 
 networks:
   match_network:

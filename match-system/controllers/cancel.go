@@ -37,7 +37,7 @@ func CancelMatch(c *gin.Context) {
 	var wdID, reserveUserID, wdAmount int
 	query := `SELECT WD_ID, Reserve_UserID, WD_Amount FROM MatchWagers WHERE WID = ? AND State = ?`
 	          
-	err := database.DB.QueryRow(query, req.WagerID, "Matching").Scan(&wdID, &reserveUserID, &wdAmount)
+	err := database.GetReadDB().QueryRow(query, req.WagerID, "Matching").Scan(&wdID, &reserveUserID, &wdAmount)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			utils.ErrorResponse(c, utils.ErrCancelNoData, startTime)
@@ -56,7 +56,7 @@ func CancelMatch(c *gin.Context) {
 	
 	updateQuery := `UPDATE MatchWagers SET State = ?, Finish_DateTime = ? WHERE WID = ?`
 	                
-	result, err := database.DB.Exec(updateQuery, "Cancel", now, req.WagerID)
+	result, err := database.GetWriteDB().Exec(updateQuery, "Cancel", now, req.WagerID)
 	if err != nil {
 		utils.ErrorResponse(c, utils.ErrUpdateFailed, startTime)
 		return

@@ -35,7 +35,7 @@ func GetRejectedList(c *gin.Context) {
 	
 	countQuery := `SELECT COUNT(*) FROM MatchWagers WHERE State = ? AND WD_DateTime < ?`
 	var total int
-	err := database.DB.QueryRow(countQuery, "Order", liveTime).Scan(&total)
+	err := database.GetReadDB().QueryRow(countQuery, "Order", liveTime).Scan(&total)
 	if err != nil {
 		utils.ErrorResponse(c, utils.ErrUpdateFailed, startTime)
 		return
@@ -47,7 +47,7 @@ func GetRejectedList(c *gin.Context) {
 	              ORDER BY WD_DateTime DESC 
 	              LIMIT ? OFFSET ?`
 	              
-	rows, err := database.DB.Query(dataQuery, "Order", liveTime, pagination.Limit, pagination.Offset)
+	rows, err := database.GetReadDB().Query(dataQuery, "Order", liveTime, pagination.Limit, pagination.Offset)
 	if err != nil {
 		utils.ErrorResponse(c, utils.ErrUpdateFailed, startTime)
 		return
@@ -111,7 +111,7 @@ func RejectMatch(c *gin.Context) {
 	
 	log.Printf("Rejected查詢: WID=%d, State=Order, LiveTime=%s", req.WagerID, liveTime.Format("2006-01-02 15:04:05"))
 	          
-	err := database.DB.QueryRow(query, req.WagerID, "Order", liveTime).Scan(&wdAmount)
+	err := database.GetReadDB().QueryRow(query, req.WagerID, "Order", liveTime).Scan(&wdAmount)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			utils.ErrorResponse(c, utils.ErrCancelNoData, startTime)
@@ -123,7 +123,7 @@ func RejectMatch(c *gin.Context) {
 	
 	updateQuery := `UPDATE MatchWagers SET State = ?, Finish_DateTime = ? WHERE WID = ? AND State = ? AND WD_DateTime < ?`
 	                
-	result, err := database.DB.Exec(updateQuery, "Rejected", now, req.WagerID, "Order", liveTime)
+	result, err := database.GetWriteDB().Exec(updateQuery, "Rejected", now, req.WagerID, "Order", liveTime)
 	if err != nil {
 		utils.ErrorResponse(c, utils.ErrUpdateFailed, startTime)
 		return

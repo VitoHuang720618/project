@@ -58,7 +58,7 @@ fi
 # 確認操作
 echo "${RED}🚨 這是不可逆的操作！${NC}"
 echo "${YELLOW}如果你需要保留資料，請先執行備份：${NC}"
-echo "   docker-compose --env-file docker.env exec mysql-db mysqldump -u root -proot1234 match_system > backup.sql"
+echo "   docker-compose --env-file docker.env exec mysql-master mysqldump -u root -proot1234 match_system > backup.sql"
 echo ""
 
 read -p "確定要繼續嗎？輸入 'YES' 確認，其他任意鍵取消: " confirm

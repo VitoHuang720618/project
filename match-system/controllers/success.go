@@ -64,7 +64,7 @@ func MatchSuccess(c *gin.Context) {
 	var wdAmount int16
 	query := `SELECT Reserve_UserID, WD_Amount FROM MatchWagers WHERE WID = ? AND State = ?`
 	          
-	err := database.DB.QueryRow(query, req.WagerID, "Matching").Scan(&reserveUserID, &wdAmount)
+	err := database.GetReadDB().QueryRow(query, req.WagerID, "Matching").Scan(&reserveUserID, &wdAmount)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// ErrCode = 10025 查無此筆資料
@@ -96,7 +96,7 @@ func MatchSuccess(c *gin.Context) {
 	                SET DEP_ID = ?, DEP_Amount = ?, State = ?, Finish_DateTime = ? 
 	                WHERE WID = ? AND State = ?`
 	                
-	result, err := database.DB.Exec(updateQuery, req.DEP_ID, req.DEP_Amount, "Success", now, req.WagerID, "Matching")
+	result, err := database.GetWriteDB().Exec(updateQuery, req.DEP_ID, req.DEP_Amount, "Success", now, req.WagerID, "Matching")
 	if err != nil {
 		// ErrCode = 10028 修改錯誤
 		utils.ErrorResponse(c, utils.ErrUpdateFailed, startTime)
@@ -124,7 +124,7 @@ func MatchSuccess(c *gin.Context) {
 	                FROM MatchWagers 
 	                WHERE WID = ? AND State = ?`
 	                
-	err = database.DB.QueryRow(selectQuery, req.WagerID, "Success").Scan(
+	err = database.GetReadDB().QueryRow(selectQuery, req.WagerID, "Success").Scan(
 		&updatedOrder.WID, &updatedOrder.WD_ID, &updatedOrder.WD_Amount, &updatedOrder.WD_Account, 
 		&reserveUserID, &depID, &depAmount, &finishDateTime)
 	if err != nil {

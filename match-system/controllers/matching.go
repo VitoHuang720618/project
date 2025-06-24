@@ -33,7 +33,7 @@ func GetMatchingList(c *gin.Context) {
 	
 	countQuery := `SELECT COUNT(*) FROM MatchWagers WHERE State = ?`
 	var total int
-	err := database.DB.QueryRow(countQuery, "Matching").Scan(&total)
+	err := database.GetReadDB().QueryRow(countQuery, "Matching").Scan(&total)
 	if err != nil {
 		utils.ErrorResponse(c, utils.ErrUpdateFailed, startTime)
 		return
@@ -45,7 +45,7 @@ func GetMatchingList(c *gin.Context) {
 	              ORDER BY WD_DateTime DESC 
 	              LIMIT ? OFFSET ?`
 	              
-	rows, err := database.DB.Query(dataQuery, "Matching", pagination.Limit, pagination.Offset)
+	rows, err := database.GetReadDB().Query(dataQuery, "Matching", pagination.Limit, pagination.Offset)
 	if err != nil {
 		utils.ErrorResponse(c, utils.ErrUpdateFailed, startTime)
 		return
@@ -155,13 +155,13 @@ func GetWagersList(c *gin.Context) {
 	}
 	
 	var total int
-	err = database.DB.QueryRow(countQuery, countArgs...).Scan(&total)
+	err = database.GetReadDB().QueryRow(countQuery, countArgs...).Scan(&total)
 	if err != nil {
 		utils.ErrorResponse(c, utils.ErrUpdateFailed, startTime)
 		return
 	}
 	
-	rows, err := database.DB.Query(dataQuery, dataArgs...)
+	rows, err := database.GetReadDB().Query(dataQuery, dataArgs...)
 	if err != nil {
 		utils.ErrorResponse(c, utils.ErrUpdateFailed, startTime)
 		return

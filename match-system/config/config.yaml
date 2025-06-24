@@ -1,9 +1,16 @@
 database:
-  host: 127.0.0.1
-  port: 3306
-  username: root
-  password: root1234
-  database: match_system
+  master:
+    host: mysql-master
+    port: 3306
+    username: root
+    password: root1234
+    database: match_system
+  slave:
+    host: mysql-slave
+    port: 3306
+    username: root
+    password: root1234
+    database: match_system
   max_idle_conns: 10
   max_open_conns: 100
   max_lifetime: 3600

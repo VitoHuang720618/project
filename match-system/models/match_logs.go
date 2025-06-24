@@ -31,7 +31,7 @@ func CreateLog(wid, wdID int, state string, logData LogDetail) error {
 	}
 	
 	query := `INSERT INTO MatchLogs (WID, WD_ID, State, LogData) VALUES (?, ?, ?, ?)`
-	_, err = database.DB.Exec(query, wid, wdID, state, string(logDataJSON))
+	_, err = database.GetWriteDB().Exec(query, wid, wdID, state, string(logDataJSON))
 	return err
 }
 
@@ -41,7 +41,7 @@ func GetLogsByWID(wid int, page, limit int) ([]MatchLog, int, error) {
 	// 計算總數
 	var total int
 	countQuery := `SELECT COUNT(*) FROM MatchLogs WHERE WID = ?`
-	err := database.DB.QueryRow(countQuery, wid).Scan(&total)
+	err := database.GetReadDB().QueryRow(countQuery, wid).Scan(&total)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -53,7 +53,7 @@ func GetLogsByWID(wid int, page, limit int) ([]MatchLog, int, error) {
 	          ORDER BY CreatedAt DESC 
 	          LIMIT ? OFFSET ?`
 	
-	rows, err := database.DB.Query(query, wid, limit, offset)
+	rows, err := database.GetReadDB().Query(query, wid, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -110,13 +110,13 @@ func GetAllLogs(page, limit int, state string) ([]MatchLog, int, error) {
 	}
 	
 	// 計算總數
-	err := database.DB.QueryRow(countQuery, countArgs...).Scan(&total)
+	err := database.GetReadDB().QueryRow(countQuery, countArgs...).Scan(&total)
 	if err != nil {
 		return nil, 0, err
 	}
 	
 	// 查詢數據
-	rows, err := database.DB.Query(dataQuery, dataArgs...)
+	rows, err := database.GetReadDB().Query(dataQuery, dataArgs...)
 	if err != nil {
 		return nil, 0, err
 	}

@@ -54,7 +54,7 @@ func CreateReserve(c *gin.Context) {
 	// 先檢查是否有符合條件的Order
 	var count int
 	countQuery := `SELECT COUNT(*) FROM MatchWagers WHERE State = ? AND WD_Amount = ? AND WD_DateTime >= ?`
-	err := database.DB.QueryRow(countQuery, "Order", req.Reserve_Amount, liveTime).Scan(&count)
+	err := database.GetReadDB().QueryRow(countQuery, "Order", req.Reserve_Amount, liveTime).Scan(&count)
 	if err != nil {
 		log.Printf("檢查Order數量失敗: %v", err)
 		utils.ErrorResponse(c, utils.ErrUpdateFailed, startTime)
@@ -77,7 +77,7 @@ func CreateReserve(c *gin.Context) {
 	                WHERE State = ? AND WD_Amount = ? AND WD_DateTime >= ? 
 	                LIMIT 1`
 	
-	result, err := database.DB.Exec(updateQuery, req.Reserve_UserID, "Matching", dateTime, "Order", req.Reserve_Amount, liveTime)
+	result, err := database.GetWriteDB().Exec(updateQuery, req.Reserve_UserID, "Matching", dateTime, "Order", req.Reserve_Amount, liveTime)
 	if err != nil {
 		log.Printf("UPDATE執行錯誤: %v", err)
 		utils.ErrorResponse(c, utils.ErrUpdateFailed, startTime)
@@ -111,7 +111,7 @@ func CreateReserve(c *gin.Context) {
 	                AND Reserve_DateTime BETWEEN ? AND ?
 	                ORDER BY Reserve_DateTime DESC LIMIT 1`
 	
-	err = database.DB.QueryRow(selectQuery, req.Reserve_UserID, "Matching", 
+	err = database.GetReadDB().QueryRow(selectQuery, req.Reserve_UserID, "Matching", 
 		dateTime.Add(-timeWindow), dateTime.Add(timeWindow)).Scan(
 		&selectedData.WID, &selectedData.WD_ID, &selectedData.WD_Amount, &selectedData.WD_Account)
 	if err != nil {

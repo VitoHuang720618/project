@@ -26,19 +26,26 @@ echo ""
 
 # 2. 檢查 MySQL 連接
 echo "${BLUE}2. 檢查 MySQL 資料庫連接${NC}"
-if docker-compose --env-file docker.env exec -T mysql-db mysql -u root -proot1234 -e "SELECT 1;" > /dev/null 2>&1; then
-    echo "${GREEN}✅ MySQL 連接正常${NC}"
+if docker-compose --env-file docker.env exec -T mysql-master mysql -u root -proot1234 -e "SELECT 1;" > /dev/null 2>&1; then
+    echo "${GREEN}✅ MySQL Master 連接正常${NC}"
 else
-    echo "${RED}❌ MySQL 連接失敗${NC}"
+    echo "${RED}❌ MySQL Master 連接失敗${NC}"
+    exit 1
+fi
+
+if docker-compose --env-file docker.env exec -T mysql-slave mysql -u root -proot1234 -e "SELECT 1;" > /dev/null 2>&1; then
+    echo "${GREEN}✅ MySQL Slave 連接正常${NC}"
+else
+    echo "${RED}❌ MySQL Slave 連接失敗${NC}"
     exit 1
 fi
 
 # 3. 檢查資料庫表結構
 echo "${BLUE}3. 檢查資料庫表結構${NC}"
-TABLE_COUNT=$(docker-compose --env-file docker.env exec -T mysql-db mysql -u root -proot1234 match_system -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'match_system';" -N)
+TABLE_COUNT=$(docker-compose --env-file docker.env exec -T mysql-master mysql -u root -proot1234 match_system -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'match_system';" -N)
 if [ "$TABLE_COUNT" -ge 2 ]; then
     echo "${GREEN}✅ 資料庫表結構正常 (共 $TABLE_COUNT 個表)${NC}"
-    docker-compose --env-file docker.env exec -T mysql-db mysql -u root -proot1234 match_system -e "SHOW TABLES;"
+    docker-compose --env-file docker.env exec -T mysql-master mysql -u root -proot1234 match_system -e "SHOW TABLES;"
 else
     echo "${RED}❌ 資料庫表結構異常${NC}"
     exit 1
@@ -47,7 +54,7 @@ echo ""
 
 # 4. 檢查測試資料
 echo "${BLUE}4. 檢查測試資料${NC}"
-DATA_COUNT=$(docker-compose --env-file docker.env exec -T mysql-db mysql -u root -proot1234 match_system -e "SELECT COUNT(*) FROM MatchWagers;" -N)
+DATA_COUNT=$(docker-compose --env-file docker.env exec -T mysql-master mysql -u root -proot1234 match_system -e "SELECT COUNT(*) FROM MatchWagers;" -N)
 if [ "$DATA_COUNT" -gt 0 ]; then
     echo "${GREEN}✅ 測試資料正常 (共 $DATA_COUNT 筆記錄)${NC}"
 else
@@ -66,7 +73,7 @@ echo ""
 
 # 6. 檢查索引狀態
 echo "${BLUE}6. 檢查資料庫索引${NC}"
-INDEX_COUNT=$(docker-compose --env-file docker.env exec -T mysql-db mysql -u root -proot1234 match_system -e "SELECT COUNT(*) FROM information_schema.statistics WHERE table_name = 'MatchWagers';" -N)
+INDEX_COUNT=$(docker-compose --env-file docker.env exec -T mysql-master mysql -u root -proot1234 match_system -e "SELECT COUNT(*) FROM information_schema.statistics WHERE table_name = 'MatchWagers';" -N)
 if [ "$INDEX_COUNT" -gt 2 ]; then
     echo "${GREEN}✅ 資料庫索引正常 (共 $INDEX_COUNT 個索引)${NC}"
 else
@@ -77,14 +84,15 @@ echo ""
 # 7. 系統資訊總結
 echo "${BLUE}📊 系統資訊總結${NC}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "🌐 Adminer:      http://localhost:8081"
-echo "🗄️  MySQL 端口:   3306"
-echo "👤 資料庫使用者: root"
-echo "🔑 資料庫密碼:   root1234"
-echo "📊 資料庫名稱:   match_system"
-echo "📋 主要資料表:   MatchWagers"
-echo "📈 測試資料:     $DATA_COUNT 筆記錄"
-echo "🔍 資料庫索引:   $INDEX_COUNT 個索引"
+echo "🌐 Adminer:        http://localhost:8081"
+echo "🗄️  MySQL Master:  localhost:3306"
+echo "🗄️  MySQL Slave:   localhost:3307"
+echo "👤 資料庫使用者:   root"
+echo "🔑 資料庫密碼:     root1234"
+echo "📊 資料庫名稱:     match_system"
+echo "📋 主要資料表:     MatchWagers"
+echo "📈 測試資料:       $DATA_COUNT 筆記錄"
+echo "🔍 資料庫索引:     $INDEX_COUNT 個索引"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 

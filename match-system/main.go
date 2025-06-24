@@ -18,7 +18,8 @@ func main() {
 		log.Fatal("Failed to load config:", err)
 	}
 	
-	log.Printf("Connecting to database: %s:%d/%s", cfg.Database.Host, cfg.Database.Port, cfg.Database.Database)
+	log.Printf("Connecting to Master: %s:%d/%s", cfg.Database.Master.Host, cfg.Database.Master.Port, cfg.Database.Master.Database)
+	log.Printf("Connecting to Slave: %s:%d/%s", cfg.Database.Slave.Host, cfg.Database.Slave.Port, cfg.Database.Slave.Database)
 	
 	// 初始化資料庫連接
 	db, err := database.InitDB(&cfg.Database)
@@ -53,23 +54,30 @@ func main() {
 	// 健康檢查端點
 	r.GET("/api/health", func(c *gin.Context) {
 		// 檢查資料庫連接
-		if database.DB != nil {
-			if err := database.DB.Ping(); err == nil {
-				c.JSON(200, gin.H{
-					"status":   "OK",
-					"database": "connected",
-					"service":  "match-system",
-					"version":  "1.0.0",
-				})
-				return
-			}
+		masterOK := database.MasterDB != nil && database.MasterDB.Ping() == nil
+		slaveOK := database.SlaveDB != nil && database.SlaveDB.Ping() == nil
+		
+		if masterOK && slaveOK {
+			c.JSON(200, gin.H{
+				"status":   "OK",
+				"database": gin.H{
+					"master": "connected",
+					"slave":  "connected",
+				},
+				"service": "match-system",
+				"version": "1.0.0",
+			})
+			return
 		}
 		
 		c.JSON(503, gin.H{
-			"status":   "ERROR",
-			"database": "disconnected",
-			"service":  "match-system",
-			"version":  "1.0.0",
+			"status": "ERROR",
+			"database": gin.H{
+				"master": map[string]bool{"connected": masterOK},
+				"slave":  map[string]bool{"connected": slaveOK},
+			},
+			"service": "match-system",
+			"version": "1.0.0",
 		})
 	})
 	

@@ -8,28 +8,65 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var DB *sql.DB
+var (
+	MasterDB *sql.DB
+	SlaveDB  *sql.DB
+	DB       *sql.DB // 向後兼容，預設指向 Master
+)
 
 func InitDB(cfg *config.DatabaseConfig) (*sql.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&collation=utf8mb4_unicode_ci&parseTime=True&loc=Local",
-		cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.Database)
+	// 初始化 Master 連線
+	masterDSN := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&collation=utf8mb4_unicode_ci&parseTime=True&loc=Local",
+		cfg.Master.Username, cfg.Master.Password, cfg.Master.Host, cfg.Master.Port, cfg.Master.Database)
 	
-	db, err := sql.Open("mysql", dsn)
+	masterDB, err := sql.Open("mysql", masterDSN)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to connect to master database: %v", err)
 	}
 	
-	// 測試連接
-	if err := db.Ping(); err != nil {
-		return nil, err
+	if err := masterDB.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping master database: %v", err)
 	}
 	
-	// 設置連接池
-	db.SetMaxIdleConns(cfg.MaxIdleConns)
-	db.SetMaxOpenConns(cfg.MaxOpenConns)
-	db.SetConnMaxLifetime(time.Duration(cfg.MaxLifetime) * time.Second)
+	// 設置 Master 連接池
+	masterDB.SetMaxIdleConns(cfg.MaxIdleConns)
+	masterDB.SetMaxOpenConns(cfg.MaxOpenConns)
+	masterDB.SetConnMaxLifetime(time.Duration(cfg.MaxLifetime) * time.Second)
 	
-	return db, nil
+	// 初始化 Slave 連線
+	slaveDSN := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&collation=utf8mb4_unicode_ci&parseTime=True&loc=Local",
+		cfg.Slave.Username, cfg.Slave.Password, cfg.Slave.Host, cfg.Slave.Port, cfg.Slave.Database)
+	
+	slaveDB, err := sql.Open("mysql", slaveDSN)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to slave database: %v", err)
+	}
+	
+	if err := slaveDB.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping slave database: %v", err)
+	}
+	
+	// 設置 Slave 連接池
+	slaveDB.SetMaxIdleConns(cfg.MaxIdleConns)
+	slaveDB.SetMaxOpenConns(cfg.MaxOpenConns)
+	slaveDB.SetConnMaxLifetime(time.Duration(cfg.MaxLifetime) * time.Second)
+	
+	// 設置全域變數
+	MasterDB = masterDB
+	SlaveDB = slaveDB
+	DB = masterDB // 向後兼容，預設指向 Master
+	
+	return masterDB, nil
+}
+
+// GetWriteDB 取得寫入用的資料庫連線 (Master)
+func GetWriteDB() *sql.DB {
+	return MasterDB
+}
+
+// GetReadDB 取得讀取用的資料庫連線 (Slave)
+func GetReadDB() *sql.DB {
+	return SlaveDB
 }
 
 // EnsureTablesExist 確保所需的表結構存在

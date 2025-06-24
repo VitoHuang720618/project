@@ -49,15 +49,25 @@ check_docker_services() {
     echo "🐳 檢查 Docker 服務..."
     
     check_service "Docker 守護程序" "docker info" ""
-    check_service "match_mysql 容器" "docker ps | grep -q match_mysql" ""
+    check_service "match_mysql_master 容器" "docker ps | grep -q match_mysql_master" ""
+    check_service "match_mysql_slave 容器" "docker ps | grep -q match_mysql_slave" ""
     check_service "match_api 容器" "docker ps | grep -q match_api" ""
     
     # 檢查容器健康狀態
-    if docker ps --format "table {{.Names}}\t{{.Status}}" | grep -q "match_mysql.*healthy"; then
-        echo -e "📋 檢查 MySQL 容器健康狀態... ${GREEN}✅ 通過${NC}"
+    if docker ps --format "table {{.Names}}\t{{.Status}}" | grep -q "match_mysql_master.*healthy"; then
+        echo -e "📋 檢查 MySQL Master 容器健康狀態... ${GREEN}✅ 通過${NC}"
         passed_checks=$((passed_checks + 1))
     else
-        echo -e "📋 檢查 MySQL 容器健康狀態... ${RED}❌ 失敗${NC}"
+        echo -e "📋 檢查 MySQL Master 容器健康狀態... ${RED}❌ 失敗${NC}"
+        failed_checks=$((failed_checks + 1))
+    fi
+    total_checks=$((total_checks + 1))
+    
+    if docker ps --format "table {{.Names}}\t{{.Status}}" | grep -q "match_mysql_slave.*healthy"; then
+        echo -e "📋 檢查 MySQL Slave 容器健康狀態... ${GREEN}✅ 通過${NC}"
+        passed_checks=$((passed_checks + 1))
+    else
+        echo -e "📋 檢查 MySQL Slave 容器健康狀態... ${RED}❌ 失敗${NC}"
         failed_checks=$((failed_checks + 1))
     fi
     total_checks=$((total_checks + 1))
@@ -104,17 +114,21 @@ check_api_endpoints() {
 check_database() {
     echo "🗄️  檢查資料庫..."
     
-    # MySQL 連接檢查
-    check_service "MySQL 連接" "docker-compose exec -T mysql-db mysqladmin ping -h localhost -u root -p$MYSQL_ROOT_PASSWORD" ""
+    # MySQL Master 連接檢查
+    check_service "MySQL Master 連接" "docker-compose exec -T mysql-master mysqladmin ping -h localhost -u root -p$MYSQL_ROOT_PASSWORD" ""
+    check_service "MySQL Slave 連接" "docker-compose exec -T mysql-slave mysqladmin ping -h localhost -u root -p$MYSQL_ROOT_PASSWORD" ""
     
     # 資料庫存在檢查
-    check_service "match_system 資料庫" "docker-compose exec -T mysql-db mysql -u root -p$MYSQL_ROOT_PASSWORD -e 'USE match_system; SELECT 1;'" ""
+    check_service "match_system 資料庫 (Master)" "docker-compose exec -T mysql-master mysql -u root -p$MYSQL_ROOT_PASSWORD -e 'USE match_system; SELECT 1;'" ""
+    check_service "match_system 資料庫 (Slave)" "docker-compose exec -T mysql-slave mysql -u root -p$MYSQL_ROOT_PASSWORD -e 'USE match_system; SELECT 1;'" ""
     
     # 資料表存在檢查
-    check_service "MatchWagers 資料表" "docker-compose exec -T mysql-db mysql -u root -p$MYSQL_ROOT_PASSWORD -e 'USE match_system; DESCRIBE MatchWagers;'" ""
+    check_service "MatchWagers 資料表 (Master)" "docker-compose exec -T mysql-master mysql -u root -p$MYSQL_ROOT_PASSWORD -e 'USE match_system; DESCRIBE MatchWagers;'" ""
+    check_service "MatchWagers 資料表 (Slave)" "docker-compose exec -T mysql-slave mysql -u root -p$MYSQL_ROOT_PASSWORD -e 'USE match_system; DESCRIBE MatchWagers;'" ""
     
     # 資料完整性檢查
-    check_service "測試資料存在" "docker-compose exec -T mysql-db mysql -u root -p$MYSQL_ROOT_PASSWORD -e 'USE match_system; SELECT COUNT(*) FROM MatchWagers;' | grep -v COUNT | grep -q '[1-9]'" ""
+    check_service "測試資料存在 (Master)" "docker-compose exec -T mysql-master mysql -u root -p$MYSQL_ROOT_PASSWORD -e 'USE match_system; SELECT COUNT(*) FROM MatchWagers;' | grep -v COUNT | grep -q '[1-9]'" ""
+    check_service "測試資料存在 (Slave)" "docker-compose exec -T mysql-slave mysql -u root -p$MYSQL_ROOT_PASSWORD -e 'USE match_system; SELECT COUNT(*) FROM MatchWagers;' | grep -v COUNT | grep -q '[1-9]'" ""
 }
 
 # 系統資源檢查
@@ -162,7 +176,7 @@ check_performance() {
     total_checks=$((total_checks + 1))
     
     # 資料庫查詢效能檢查
-    query_time=$(docker-compose exec -T mysql-db mysql -u root -p$MYSQL_ROOT_PASSWORD -e "USE match_system; SELECT COUNT(*) FROM MatchWagers;" 2>/dev/null | wc -l)
+    query_time=$(docker-compose exec -T mysql-master mysql -u root -p$MYSQL_ROOT_PASSWORD -e "USE match_system; SELECT COUNT(*) FROM MatchWagers;" 2>/dev/null | wc -l)
     if [ "$query_time" -gt 0 ]; then
         echo -e "📋 檢查資料庫查詢效能... ${GREEN}✅ 通過${NC}"
         passed_checks=$((passed_checks + 1))

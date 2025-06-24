@@ -20,5 +20,6 @@ func SetupRoutes(r *gin.Engine) {
 		api.GET("/logs", controllers.GetAllLogs)
 		api.GET("/logs/wager/:wid", controllers.GetLogsByWager)
 		api.GET("/logs/state/:state", controllers.GetLogsByState)
+		api.GET("/dbstatus", controllers.DatabaseStatus)
 	}
 } 

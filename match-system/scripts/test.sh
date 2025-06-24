@@ -125,7 +125,7 @@ business_workflow_tests() {
     api_test "預約入款" "POST" "/api/reserve" "$reserve_data" "200"
     
     # 3. 撮合成功 (動態獲取 Matching 狀態的委託單)
-    matching_wid=$(docker-compose exec -T mysql-db mysql -u root -proot1234 -e "USE match_system; SELECT WID FROM MatchWagers WHERE State='Matching' AND Reserve_UserID=9999 ORDER BY WID DESC LIMIT 1;" | tail -n +2 | head -n 1)
+    matching_wid=$(docker-compose exec -T mysql-master mysql -u root -proot1234 -e "USE match_system; SELECT WID FROM MatchWagers WHERE State='Matching' AND Reserve_UserID=9999 ORDER BY WID DESC LIMIT 1;" | tail -n +2 | head -n 1)
     success_data="{\"WagerID\":$matching_wid,\"Reserve_UserID\":9999,\"DEP_ID\":9999,\"DEP_Amount\":1000}"
     api_test "撮合成功" "POST" "/api/success" "$success_data" "200"
     
@@ -138,7 +138,7 @@ business_workflow_tests() {
     api_test "預約第二個委託單" "POST" "/api/reserve" "$reserve_data2" "200"
     
     # 6. 測試取消功能 (使用剛預約的委託單)
-    cancel_wid=$(docker-compose exec -T mysql-db mysql -u root -proot1234 -e "USE match_system; SELECT WID FROM MatchWagers WHERE State='Matching' AND Reserve_UserID=8888 ORDER BY WID DESC LIMIT 1;" | tail -n +2 | head -n 1)
+    cancel_wid=$(docker-compose exec -T mysql-master mysql -u root -proot1234 -e "USE match_system; SELECT WID FROM MatchWagers WHERE State='Matching' AND Reserve_UserID=8888 ORDER BY WID DESC LIMIT 1;" | tail -n +2 | head -n 1)
     cancel_data="{\"WagerID\":$cancel_wid,\"Reserve_UserID\":8888}"
     api_test "取消撮合" "POST" "/api/cancel" "$cancel_data" "200"
     
@@ -147,7 +147,7 @@ business_workflow_tests() {
     api_test "新增第三個委託單" "POST" "/api/order" "$order_data3" "200"
     
     # 8. 測試轉失效功能 (使用新的Order狀態委託單)
-    reject_wid=$(docker-compose exec -T mysql-db mysql -u root -proot1234 -e "USE match_system; SELECT WID FROM MatchWagers WHERE State='Order' AND WD_ID=9997 ORDER BY WID DESC LIMIT 1;" | tail -n +2 | head -n 1)
+    reject_wid=$(docker-compose exec -T mysql-master mysql -u root -proot1234 -e "USE match_system; SELECT WID FROM MatchWagers WHERE State='Order' AND WD_ID=9997 ORDER BY WID DESC LIMIT 1;" | tail -n +2 | head -n 1)
     rejected_data="{\"WagerID\":$reject_wid,\"Reserve_UserID\":1}"
     api_test "轉失效單" "POST" "/api/rejected" "$rejected_data" "200"
     
@@ -194,7 +194,7 @@ performance_tests() {
     # 資料庫查詢效能
     echo -n "🔬 測試 資料庫查詢效能..."
     query_start=$(date +%s.%N)
-    docker-compose exec -T mysql-db mysql -u root -proot1234 -e "USE match_system; SELECT COUNT(*) FROM MatchWagers WHERE State = 'Order';" > /dev/null 2>&1
+    docker-compose exec -T mysql-master mysql -u root -proot1234 -e "USE match_system; SELECT COUNT(*) FROM MatchWagers WHERE State = 'Order';" > /dev/null 2>&1
     query_end=$(date +%s.%N)
     query_time=$(echo "$query_end - $query_start" | bc)
     

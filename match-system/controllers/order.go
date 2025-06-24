@@ -87,7 +87,7 @@ func CreateOrder(c *gin.Context) {
 	insertQuery := `INSERT INTO MatchWagers (WD_ID, WD_Amount, WD_Account, WD_Date, WD_DateTime, State) 
 	                VALUES (?, ?, ?, ?, ?, ?)`
 	                
-	result, err := database.DB.Exec(insertQuery, req.WD_ID, req.WD_Amount, req.WD_Account, wdDate, wdDateTime, "Order")
+	result, err := database.GetWriteDB().Exec(insertQuery, req.WD_ID, req.WD_Amount, req.WD_Account, wdDate, wdDateTime, "Order")
 	if err != nil {
 		utils.ErrorResponse(c, utils.ErrUpdateFailed, startTime)
 		return

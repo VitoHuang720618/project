@@ -1,4 +1,4 @@
-INSERT INTO MatchLogs (WID, WD_ID, State, LogData, AddDateTime) VALUES
+INSERT INTO MatchLogs (WID, WD_ID, State, LogData, CreatedAt) VALUES
 (1, 1001, 'Order', '{"action":"create_order","to_state":"Order","timestamp":"2024-01-01T10:00:00Z","details":{"wd_amount":5000,"wd_account":"ACC001"}}', '2024-01-01 10:00:00'),
 (1, 1001, 'Matching', '{"action":"state_change","from_state":"Order","to_state":"Matching","timestamp":"2024-01-01T10:05:00Z","details":{"reserve_user_id":2001,"reserve_amount":5000}}', '2024-01-01 10:05:00'),
 (1, 1001, 'Success', '{"action":"state_change","from_state":"Matching","to_state":"Success","timestamp":"2024-01-01T10:10:00Z","details":{"dep_id":3001,"dep_amount":5000,"reserve_user_id":2001}}', '2024-01-01 10:10:00'),
