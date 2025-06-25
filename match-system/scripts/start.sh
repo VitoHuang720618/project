@@ -28,7 +28,7 @@ check_docker() {
 cleanup_old_containers() {
     echo "�� 清理舊容器..."
     
-    containers=("match_mysql" "match_api" "match_adminer")
+    containers=("match_mysql" "match_api" "match_phpmyadmin" "match_phpmyadmin_master" "match_phpmyadmin_slave")
     for container in "${containers[@]}"; do
         if docker ps -a | grep -q $container; then
             docker stop $container 2>/dev/null || true
@@ -114,27 +114,45 @@ start_api() {
     done
 }
 
-# 啟動 Adminer 服務
-start_adminer() {
-    echo "🌐 啟動 Adminer 服務..."
+# 啟動 phpMyAdmin 服務
+start_phpmyadmin() {
+    echo "🌐 啟動 phpMyAdmin 服務..."
     
-    docker-compose --env-file docker.env up -d adminer
+    docker-compose --env-file docker.env up -d phpmyadmin-master phpmyadmin-slave
     
-    echo "⏳ 等待 Adminer 啟動..."
+    echo "⏳ 等待 phpMyAdmin Master 啟動..."
     
     for i in {1..20}; do
-        if docker-compose --env-file docker.env ps adminer | grep -q "Up"; then
-            echo "✅ Adminer 服務啟動成功"
+        if docker-compose --env-file docker.env ps phpmyadmin-master | grep -q "Up"; then
+            echo "✅ phpMyAdmin Master 服務啟動成功"
             break
         fi
         
         if [ $i -eq 20 ]; then
-            echo "❌ Adminer 啟動超時，請檢查日誌"
-            docker-compose --env-file docker.env logs adminer
+            echo "❌ phpMyAdmin Master 啟動超時，請檢查日誌"
+            docker-compose --env-file docker.env logs phpmyadmin-master
             exit 1
         fi
         
-        echo "⏳ 等待 Adminer 啟動... ($i/20)"
+        echo "⏳ 等待 phpMyAdmin Master 啟動... ($i/20)"
+        sleep 1
+    done
+    
+    echo "⏳ 等待 phpMyAdmin Slave 啟動..."
+    
+    for i in {1..20}; do
+        if docker-compose --env-file docker.env ps phpmyadmin-slave | grep -q "Up"; then
+            echo "✅ phpMyAdmin Slave 服務啟動成功"
+            break
+        fi
+        
+        if [ $i -eq 20 ]; then
+            echo "❌ phpMyAdmin Slave 啟動超時，請檢查日誌"
+            docker-compose --env-file docker.env logs phpmyadmin-slave
+            exit 1
+        fi
+        
+        echo "⏳ 等待 phpMyAdmin Slave 啟動... ($i/20)"
         sleep 1
     done
 }
@@ -170,12 +188,20 @@ run_health_check() {
         exit 1
     fi
     
-    # 檢查 Adminer 服務
-    echo "🌐 檢查 Adminer 服務..."
-    if docker-compose --env-file docker.env ps adminer | grep -q "Up"; then
-        echo "✅ Adminer 服務運行中"
+    # 檢查 phpMyAdmin 服務
+    echo "🌐 檢查 phpMyAdmin Master 服務..."
+    if docker-compose --env-file docker.env ps phpmyadmin-master | grep -q "Up"; then
+        echo "✅ phpMyAdmin Master 服務運行中"
     else
-        echo "❌ Adminer 服務未運行"
+        echo "❌ phpMyAdmin Master 服務未運行"
+        exit 1
+    fi
+    
+    echo "🌐 檢查 phpMyAdmin Slave 服務..."
+    if docker-compose --env-file docker.env ps phpmyadmin-slave | grep -q "Up"; then
+        echo "✅ phpMyAdmin Slave 服務運行中"
+    else
+        echo "❌ phpMyAdmin Slave 服務未運行"
         exit 1
     fi
 }
@@ -189,7 +215,8 @@ show_service_info() {
     echo "  API 服務:          http://localhost:8080"
     echo "  MySQL Master:      localhost:3306"
     echo "  MySQL Slave:       localhost:3307"
-    echo "  Adminer:           http://localhost:8081"
+    echo "  phpMyAdmin Master: http://localhost:8081"
+    echo "  phpMyAdmin Slave:  http://localhost:8082"
     echo "  資料庫名稱:        match_system"
     echo ""
     echo "📝 下一步操作:"
@@ -220,7 +247,7 @@ main() {
     cleanup_old_containers
     start_mysql
     start_api
-    start_adminer
+    start_phpmyadmin
     run_health_check
     auto_migrate
     show_service_info

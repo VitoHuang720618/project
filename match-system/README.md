@@ -62,7 +62,7 @@ chmod +x scripts/*.sh && ./scripts/setup.sh && ./scripts/start.sh && ./scripts/s
 | 載入測試資料 | `10` | `./run.sh seed` | `cat database/seeds/*.sql \| mysql...` |
 | 設置複製 | `11` | `./run.sh replication` | `./scripts/setup_replication.sh` |
 | 檢查資料庫狀態 | `12` | `./run.sh dbstatus` | `docker-compose exec mysql-master/slave...` |
-| 開啟 Adminer | `13` | `./run.sh db` | `open http://localhost:8081` |
+| 開啟 phpMyAdmin | `13` | `./run.sh db` | `open http://localhost:8081` |
 | **測試與監控** |
 | 健康檢查 | `14` | `./run.sh health` | `./scripts/health_check.sh` |
 | 執行測試 | `15` | `./run.sh test` | `./scripts/test.sh` |
@@ -82,7 +82,7 @@ chmod +x scripts/*.sh && ./scripts/setup.sh && ./scripts/start.sh && ./scripts/s
 
 # - 選擇 1：一鍵完整部署 (包含 Master-Slave 設置)
 # - 選擇 12：檢查資料庫狀態
-# - 選擇 13：開啟 Adminer 管理介面
+# - 選擇 13：開啟 phpMyAdmin 管理介面
 ```
 
 ### 完全重置並啟動 Master-Slave
@@ -127,7 +127,7 @@ docker-compose ps
 docker-compose logs -f mysql-master    # MySQL Master 日誌
 docker-compose logs -f mysql-slave     # MySQL Slave 日誌
 docker-compose logs -f match-api       # API 服務日誌
-docker-compose logs -f adminer         # Adminer 日誌
+docker-compose logs -f phpmyadmin      # phpMyAdmin 日誌
 
 # 進入容器除錯
 docker-compose exec mysql-master bash
@@ -187,7 +187,7 @@ docker network inspect match-system_match_network
 lsof -i :8080  # API 服務
 lsof -i :3306  # MySQL Master
 lsof -i :3307  # MySQL Slave
-lsof -i :8081  # Adminer
+lsof -i :8081  # phpMyAdmin
 
 # 或使用 netstat
 netstat -tulpn | grep :8080
@@ -217,7 +217,7 @@ alias match-logs='./run.sh logs'          # 查看日誌
 alias match-status='./run.sh status'      # 查看狀態
 alias match-clean='./run.sh clean'        # 清理環境
 alias match-build='./run.sh build'        # 重建服務
-alias match-db='./run.sh db'              # 開啟 Adminer
+alias match-db='./run.sh db'              # 開啟 phpMyAdmin
 
 # Master-Slave 組合指令別名
 alias match-quick='./run.sh start && ./run.sh replication'  # 快速啟動含複製
@@ -305,7 +305,7 @@ chmod +x monitor.sh
 ./run.sh
 # 選擇 1 → 一鍵完整部署 (包含 Master-Slave 設置)
 # 選擇 12 → 檢查資料庫狀態
-# 選擇 13 → 開啟 Adminer 管理介面
+# 選擇 13 → 開啟 phpMyAdmin 管理介面
 ```
 
 ### 熟練用戶：指令模式
@@ -345,7 +345,7 @@ match-check        # 完整系統檢查
 - **🖥️ 互動式選單**：20 個選項，數字選擇更直觀
 - **⚡ 一鍵部署**：自動化部署包含複製設置
 - **📈 即時監控**：資料庫狀態、複製狀態即時查看
-- **🌐 Web 管理**：Adminer 固定端口 8081 管理資料庫
+- **🌐 Web 管理**：phpMyAdmin 固定端口 8081 管理資料庫
 - **🛡️ 企業級架構**：提升效能和可靠性
 
 選擇最適合你的方式開始使用！ 🚀 

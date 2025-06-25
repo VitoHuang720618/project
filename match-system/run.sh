@@ -36,7 +36,7 @@ show_menu() {
     echo " ${GREEN}10)${NC} 載入測試資料"
     echo " ${GREEN}11)${NC} 設置 Master-Slave 複製"
     echo " ${GREEN}12)${NC} 檢查資料庫狀態"
-    echo " ${GREEN}13)${NC} 開啟 Adminer 管理介面"
+    echo " ${GREEN}13)${NC} 開啟 phpMyAdmin 管理介面"
     echo ""
     echo "${YELLOW}🧪 測試與監控${NC}"
     echo " ${GREEN}14)${NC} 執行健康檢查"
@@ -78,10 +78,10 @@ show_help() {
     echo "  seed      - 載入測試資料"
     echo "  deploy    - 一鍵完整部署 (clean + setup + start + migrate)"
     echo "  dev       - 開發模式啟動"
-    echo "  db        - 開啟 Adminer 資料庫管理 (http://localhost:8081)"
+    echo "  db        - 開啟 phpMyAdmin 資料庫管理 (http://localhost:8081)"
     echo "  dbstatus  - 檢查 Master-Slave 資料庫狀態"
     echo "  replication - 設置 Master-Slave 複製"
-    echo "  remove-db - 移除 Adminer 和 MySQL 服務及資料"
+    echo "  remove-db - 移除 phpMyAdmin 和 MySQL 服務及資料"
     echo "  help      - 顯示此幫助訊息"
     echo ""
     echo "快速啟動: ./run.sh setup && ./run.sh start && ./run.sh replication"
@@ -202,25 +202,85 @@ execute_choice() {
             fi
             ;;
         13) 
-            echo "${BLUE}開啟 Adminer...${NC}"
+            echo "${BLUE}開啟 phpMyAdmin 管理介面...${NC}"
             echo "${GREEN}📋 Master-Slave 資料庫連線資訊:${NC}"
-            echo "   🌐 Adminer: http://localhost:8081"
+            echo "   🌐 Master phpMyAdmin:  http://localhost:8081"
+            echo "   🌐 Slave phpMyAdmin:   http://localhost:8082"
             echo "   🗄️  Master 伺服器: mysql-master"
             echo "   🗄️  Slave 伺服器: mysql-slave"
             echo "   👤 使用者: root"
             echo "   🔑 密碼: root1234"
             echo "   📊 資料庫: match_system"
+            echo ""
+            echo "${YELLOW}請選擇要開啟的 phpMyAdmin:${NC}"
+            echo "  ${GREEN}1)${NC} Master phpMyAdmin (讀寫權限)"
+            echo "  ${GREEN}2)${NC} Slave phpMyAdmin (唯讀)"
+            echo "  ${GREEN}3)${NC} 同時開啟兩個"
+            echo "  ${GREEN}0)${NC} 返回上層選單"
+            echo ""
+            echo -n "${YELLOW}請選擇 (0-3): ${NC}"
+            read phpmyadmin_choice
             
-            if docker-compose --env-file docker.env ps adminer | grep -q "Up"; then
-                echo "${GREEN}✅ Adminer 已在運行${NC}"
-                open "http://localhost:8081" 2>/dev/null || echo "請手動開啟: http://localhost:8081"
-            else
-                echo "${YELLOW}⚠️  Adminer 未運行，正在啟動...${NC}"
-                docker-compose --env-file docker.env up -d adminer
-                sleep 3
-                open "http://localhost:8081" 2>/dev/null || echo "請手動開啟: http://localhost:8081"
-            fi
-            show_notification "撮合系統" "Adminer 已開啟！" "success"
+            case "$phpmyadmin_choice" in
+                1)
+                    echo "${BLUE}💾 開啟 Master phpMyAdmin...${NC}"
+                    master_running=$(docker-compose --env-file docker.env ps phpmyadmin-master | grep -q "Up" && echo "true" || echo "false")
+                    
+                    if [ "$master_running" = "true" ]; then
+                        echo "${GREEN}✅ Master phpMyAdmin 已在運行 (http://localhost:8081)${NC}"
+                        open "http://localhost:8081" 2>/dev/null || echo "請手動開啟: http://localhost:8081"
+                    else
+                        echo "${YELLOW}⚠️  Master phpMyAdmin 未運行，正在啟動...${NC}"
+                        docker-compose --env-file docker.env up -d phpmyadmin-master
+                        echo "${GREEN}✅ Master phpMyAdmin 啟動完成${NC}"
+                        sleep 3
+                        open "http://localhost:8081" 2>/dev/null || echo "請手動開啟: http://localhost:8081"
+                    fi
+                    show_notification "撮合系統" "Master phpMyAdmin 已開啟！" "success"
+                    ;;
+                2)
+                    echo "${BLUE}💾 開啟 Slave phpMyAdmin...${NC}"
+                    slave_running=$(docker-compose --env-file docker.env ps phpmyadmin-slave | grep -q "Up" && echo "true" || echo "false")
+                    
+                    if [ "$slave_running" = "true" ]; then
+                        echo "${GREEN}✅ Slave phpMyAdmin 已在運行 (http://localhost:8082)${NC}"
+                        open "http://localhost:8082" 2>/dev/null || echo "請手動開啟: http://localhost:8082"
+                    else
+                        echo "${YELLOW}⚠️  Slave phpMyAdmin 未運行，正在啟動...${NC}"
+                        docker-compose --env-file docker.env up -d phpmyadmin-slave
+                        echo "${GREEN}✅ Slave phpMyAdmin 啟動完成${NC}"
+                        sleep 3
+                        open "http://localhost:8082" 2>/dev/null || echo "請手動開啟: http://localhost:8082"
+                    fi
+                    show_notification "撮合系統" "Slave phpMyAdmin 已開啟！" "success"
+                    ;;
+                3)
+                    echo "${BLUE}💾 同時開啟 Master 和 Slave phpMyAdmin...${NC}"
+                    master_running=$(docker-compose --env-file docker.env ps phpmyadmin-master | grep -q "Up" && echo "true" || echo "false")
+                    slave_running=$(docker-compose --env-file docker.env ps phpmyadmin-slave | grep -q "Up" && echo "true" || echo "false")
+                    
+                    if [ "$master_running" = "true" ] && [ "$slave_running" = "true" ]; then
+                        echo "${GREEN}✅ Master phpMyAdmin 已在運行 (http://localhost:8081)${NC}"
+                        echo "${GREEN}✅ Slave phpMyAdmin 已在運行 (http://localhost:8082)${NC}"
+                        open "http://localhost:8081" 2>/dev/null || echo "請手動開啟 Master: http://localhost:8081"
+                        open "http://localhost:8082" 2>/dev/null || echo "請手動開啟 Slave: http://localhost:8082"
+                    else
+                        echo "${YELLOW}⚠️  phpMyAdmin 服務未完全運行，正在啟動...${NC}"
+                        docker-compose --env-file docker.env up -d phpmyadmin-master phpmyadmin-slave
+                        echo "${GREEN}✅ phpMyAdmin 服務啟動完成${NC}"
+                        sleep 3
+                        open "http://localhost:8081" 2>/dev/null || echo "請手動開啟 Master: http://localhost:8081"
+                        open "http://localhost:8082" 2>/dev/null || echo "請手動開啟 Slave: http://localhost:8082"
+                    fi
+                    show_notification "撮合系統" "phpMyAdmin 已開啟！" "success"
+                    ;;
+                0)
+                    echo "${YELLOW}返回上層選單...${NC}"
+                    ;;
+                *)
+                    echo "${RED}無效選擇，請輸入 0-3${NC}"
+                    ;;
+            esac
             ;;
         14) 
             echo "${BLUE}執行健康檢查...${NC}"
@@ -494,7 +554,7 @@ else
         echo ""
         echo "${BLUE}🔗 服務地址:${NC}"
         echo "  API:      http://localhost:8080"
-        echo "  Adminer:  http://localhost:8081"
+        echo "  phpMyAdmin:  http://localhost:8081"
         echo ""
         echo "${BLUE}💡 提示:${NC}"
         echo "  - 如需載入測試資料，請設置: LOAD_TEST_DATA=true ./run.sh deploy"
@@ -506,26 +566,33 @@ else
         docker-compose --env-file docker.env -f docker-compose.yml up
         ;;
     "db")
-        echo "${BLUE}💾 開啟 Adminer 資料庫管理介面...${NC}"
+        echo "${BLUE}💾 開啟 phpMyAdmin 資料庫管理介面...${NC}"
         echo "${GREEN}📋 Master-Slave 資料庫連線資訊:${NC}"
-        echo "   🌐 Adminer: http://localhost:8081"
+        echo "   🌐 Master phpMyAdmin:  http://localhost:8081"
+        echo "   🌐 Slave phpMyAdmin:   http://localhost:8082"
         echo "   🗄️  Master 伺服器: mysql-master"
         echo "   🗄️  Slave 伺服器: mysql-slave"
         echo "   👤 使用者: root"
         echo "   🔑 密碼: root1234"
         echo "   📊 資料庫: match_system"
         echo ""
-        echo "正在檢查 Adminer 服務狀態..."
+        echo "正在檢查 phpMyAdmin 服務狀態..."
         
-        if docker-compose --env-file docker.env ps adminer | grep -q "Up"; then
-            echo "${GREEN}✅ Adminer 已在運行${NC}"
-            open "http://localhost:8081" 2>/dev/null || echo "請手動開啟: http://localhost:8081"
+        master_running=$(docker-compose --env-file docker.env ps phpmyadmin-master | grep -q "Up" && echo "true" || echo "false")
+        slave_running=$(docker-compose --env-file docker.env ps phpmyadmin-slave | grep -q "Up" && echo "true" || echo "false")
+        
+        if [ "$master_running" = "true" ] && [ "$slave_running" = "true" ]; then
+            echo "${GREEN}✅ Master phpMyAdmin 已在運行 (http://localhost:8081)${NC}"
+            echo "${GREEN}✅ Slave phpMyAdmin 已在運行 (http://localhost:8082)${NC}"
+            open "http://localhost:8081" 2>/dev/null || echo "請手動開啟 Master: http://localhost:8081"
+            open "http://localhost:8082" 2>/dev/null || echo "請手動開啟 Slave: http://localhost:8082"
         else
-            echo "${YELLOW}⚠️  Adminer 未運行，正在啟動...${NC}"
-            docker-compose --env-file docker.env up -d adminer
-            echo "${GREEN}✅ Adminer 啟動完成${NC}"
+            echo "${YELLOW}⚠️  phpMyAdmin 服務未完全運行，正在啟動...${NC}"
+            docker-compose --env-file docker.env up -d phpmyadmin-master phpmyadmin-slave
+            echo "${GREEN}✅ phpMyAdmin 服務啟動完成${NC}"
             sleep 3
-            open "http://localhost:8081" 2>/dev/null || echo "請手動開啟: http://localhost:8081"
+            open "http://localhost:8081" 2>/dev/null || echo "請手動開啟 Master: http://localhost:8081"
+            open "http://localhost:8082" 2>/dev/null || echo "請手動開啟 Slave: http://localhost:8082"
         fi
         ;;
     "dbstatus")
@@ -602,7 +669,7 @@ else
     "remove-db")
         echo "${BLUE}🗑️  移除 Master-Slave 資料庫服務和資料...${NC}"
         echo "${RED}⚠️  警告：此操作將完全移除以下內容：${NC}"
-        echo "   - Adminer 容器和映像"
+        echo "   - phpMyAdmin 容器和映像"
         echo "   - MySQL Master 和 Slave 容器和映像"
         echo "   - 所有資料庫資料（包含 MatchWagers 表）"
         echo "   - Docker 卷和網路"
@@ -615,10 +682,10 @@ else
             docker-compose --env-file docker.env down
             
             echo "${BLUE}🗑️  移除容器...${NC}"
-            docker rm -f match_mysql_master match_mysql_slave match_adminer 2>/dev/null || true
+            docker rm -f match_mysql_master match_mysql_slave match_phpmyadmin 2>/dev/null || true
             
             echo "${BLUE}🗑️  移除映像...${NC}"
-            docker rmi mysql:8.0 adminer:4.8.1 2>/dev/null || true
+            docker rmi mysql:8.0 phpmyadmin/phpmyadmin:5.2 2>/dev/null || true
             
             echo "${BLUE}🗑️  移除卷...${NC}"
             docker volume rm match-system_mysql_master_data match-system_mysql_slave_data 2>/dev/null || true

@@ -18,11 +18,12 @@ echo "${RED}⚠️  警告：此操作將完全移除以下內容：${NC}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🐳 Docker 容器:"
 echo "   - match_mysql (MySQL 8.0 資料庫)"
-echo "   - match_adminer (Adminer 管理工具)"
+echo "   - match_phpmyadmin_master (phpMyAdmin Master 管理工具)
+   - match_phpmyadmin_slave (phpMyAdmin Slave 管理工具)"
 echo ""
 echo "🖼️  Docker 映像:"
 echo "   - mysql:8.0"
-echo "   - adminer:4.8.1"
+echo "   - phpmyadmin/phpmyadmin:5.2"
 echo ""
 echo "💾 資料卷:"
 echo "   - match-system_mysql_data (包含所有資料庫資料)"
@@ -83,7 +84,7 @@ echo ""
 # 2. 移除容器
 echo "${BLUE}2️⃣  移除容器...${NC}"
 containers_removed=0
-for container in match_mysql match_adminer; do
+for container in match_mysql match_phpmyadmin match_phpmyadmin_master match_phpmyadmin_slave; do
     if docker rm -f $container 2>/dev/null; then
         echo "   ✅ 已移除容器: $container"
         containers_removed=$((containers_removed + 1))
@@ -97,7 +98,7 @@ echo ""
 # 3. 移除映像
 echo "${BLUE}3️⃣  移除映像...${NC}"
 images_removed=0
-for image in mysql:8.0 adminer:4.8.1; do
+for image in mysql:8.0 phpmyadmin/phpmyadmin:5.2; do
     if docker rmi $image 2>/dev/null; then
         echo "   ✅ 已移除映像: $image"
         images_removed=$((images_removed + 1))
@@ -139,7 +140,7 @@ echo ""
 # 7. 驗證清理結果
 echo "${BLUE}7️⃣  驗證清理結果...${NC}"
 remaining_containers=$(docker ps -a --filter "name=match_" --format "{{.Names}}" | wc -l)
-remaining_images=$(docker images --filter "reference=mysql:8.0" --filter "reference=adminer:4.8.1" --format "{{.Repository}}:{{.Tag}}" | wc -l)
+remaining_images=$(docker images --filter "reference=mysql:8.0" --filter "reference=phpmyadmin/phpmyadmin:5.2" --format "{{.Repository}}:{{.Tag}}" | wc -l)
 remaining_volumes=$(docker volume ls --filter "name=match-system" --format "{{.Name}}" | wc -l)
 remaining_networks=$(docker network ls --filter "name=match-system" --format "{{.Name}}" | wc -l)
 
@@ -155,7 +156,7 @@ echo ""
 echo "${BLUE}📋 移除總結:${NC}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "✅ MySQL 資料庫服務已移除"
-echo "✅ Adminer 管理工具已移除"
+echo "✅ phpMyAdmin 管理工具已移除"
 echo "✅ 所有資料庫資料已刪除"
 echo "✅ Docker 資源已清理"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

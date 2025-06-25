@@ -72,19 +72,40 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  adminer:
-    image: adminer:4.8.1
-    container_name: match_adminer
+  phpmyadmin-master:
+    image: phpmyadmin/phpmyadmin:5.2
+    platform: linux/amd64
+    container_name: match_phpmyadmin_master
     depends_on:
       mysql-master:
         condition: service_healthy
+    environment:
+      PMA_HOST: mysql-master
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      UPLOAD_LIMIT: 300M
+    ports:
+      - "8081:80"
+    networks:
+      - match_network
+    restart: unless-stopped
+
+  phpmyadmin-slave:
+    image: phpmyadmin/phpmyadmin:5.2
+    platform: linux/amd64
+    container_name: match_phpmyadmin_slave
+    depends_on:
       mysql-slave:
         condition: service_healthy
     environment:
-      ADMINER_DEFAULT_SERVER: mysql-master
-      ADMINER_DESIGN: pepa-linha
+      PMA_HOST: mysql-slave
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      UPLOAD_LIMIT: 300M
     ports:
-      - "8081:8080"
+      - "8082:80"
     networks:
       - match_network
     restart: unless-stopped

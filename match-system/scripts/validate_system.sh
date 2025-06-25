@@ -62,12 +62,18 @@ else
 fi
 echo ""
 
-# 5. 檢查 Adminer 服務
-echo "${BLUE}5. 檢查 Adminer 服務${NC}"
+# 5. 檢查 phpMyAdmin 服務
+echo "${BLUE}5. 檢查 phpMyAdmin 服務${NC}"
 if curl -s -o /dev/null -w "%{http_code}" http://localhost:8081 | grep -q "200"; then
-    echo "${GREEN}✅ Adminer 服務正常 (http://localhost:8081)${NC}"
+    echo "${GREEN}✅ phpMyAdmin Master 服務正常 (http://localhost:8081)${NC}"
 else
-    echo "${YELLOW}⚠️  Adminer 服務檢查異常，但可能仍可正常使用${NC}"
+    echo "${YELLOW}⚠️  phpMyAdmin Master 服務檢查異常，但可能仍可正常使用${NC}"
+fi
+
+if curl -s -o /dev/null -w "%{http_code}" http://localhost:8082 | grep -q "200"; then
+    echo "${GREEN}✅ phpMyAdmin Slave 服務正常 (http://localhost:8082)${NC}"
+else
+    echo "${YELLOW}⚠️  phpMyAdmin Slave 服務檢查異常，但可能仍可正常使用${NC}"
 fi
 echo ""
 
@@ -84,7 +90,8 @@ echo ""
 # 7. 系統資訊總結
 echo "${BLUE}📊 系統資訊總結${NC}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "🌐 Adminer:        http://localhost:8081"
+echo "🌐 phpMyAdmin Master: http://localhost:8081"
+echo "🌐 phpMyAdmin Slave:  http://localhost:8082"
 echo "🗄️  MySQL Master:  localhost:3306"
 echo "🗄️  MySQL Slave:   localhost:3307"
 echo "👤 資料庫使用者:   root"
@@ -98,7 +105,7 @@ echo ""
 
 echo "${GREEN}🎉 撮合系統驗證完成！${NC}"
 echo "${BLUE}💡 使用提示:${NC}"
-echo "   - 開啟 Adminer:   ./run.sh db"
+echo "   - 開啟 phpMyAdmin: ./run.sh db"
 echo "   - 查看服務狀態:   ./run.sh status"
 echo "   - 查看服務日誌:   ./run.sh logs"
 echo "   - 執行資料庫遷移: ./run.sh migrate"
